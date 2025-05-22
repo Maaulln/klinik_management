@@ -59,11 +59,12 @@ function showDashboard() {
     $pageTitle = 'Patient Dashboard';
     
     // Get upcoming appointments
-    $upcomingRegistrations = dbQuery("
-        SELECT r.*
-        FROM registrasi r
-        WHERE r.id_pasien = ? AND r.waktu_registrasi > NOW()
-        ORDER BY r.waktu_registrasi ASC
+    $upcomingAppointments = dbQuery("
+       SELECT a.*, d.nama_dokter
+        FROM appointments a
+        JOIN dokter d ON a.id_dokter = d.id_dokter
+        WHERE a.id_pasien = ? AND (a.tanggal_janji > CURRENT_DATE OR (a.tanggal_janji = CURRENT_DATE AND a.waktu_janji > CURRENT_TIME))
+        ORDER BY a.tanggal_janji ASC, a.waktu_janji ASC
         LIMIT 5
     ", [$patient['id_pasien']]);
     
@@ -125,12 +126,15 @@ function listAppointments() {
     $pageTitle = 'My Appointments';
     
     // Get all appointments
-    $registrations = dbQuery("
-        SELECT r.*
-        FROM registrasi r
-        WHERE r.id_pasien = ?
-        ORDER BY r.waktu_registrasi DESC
+     $appointments = dbQuery("
+        SELECT a.*, d.nama_dokter
+        FROM appointments a
+        JOIN dokter d ON a.id_dokter = d.id_dokter
+        WHERE a.id_pasien = ?
+        ORDER BY a.tanggal_janji DESC
     ", [$patient['id_pasien']]);
+    
+    $registrations = $appointments; // Assign to $registrations for the view
     
     require_once __DIR__ . '/../views/patient/appointments/list.php';
 }
@@ -141,61 +145,113 @@ function listAppointments() {
 function requestAppointment() {
     global $patient;
     $pageTitle = 'Request Appointment';
-    
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Validate CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
             setFlashMessage('Invalid form submission. Please try again.', 'error');
-            redirect('/patient?action=appointments&sub_action=request');
+            redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
-        
+
         // Validate input
         $appointmentDate = $_POST['appointment_date'] ?? '';
         $appointmentTime = $_POST['appointment_time'] ?? '';
-        
-        if (empty($appointmentDate) || empty($appointmentTime)) {
-            setFlashMessage('Please provide both date and time for your appointment.', 'error');
-            redirect('/patient?action=appointments&sub_action=request');
+        $id_dokter = $_POST['id_dokter'] ?? '';
+
+        if (empty($appointmentDate) || empty($appointmentTime) || empty($id_dokter)) {
+            setFlashMessage('Please provide doctor, date, and time for your appointment.', 'error');
+            redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
-        
-        // Validate date format
+
+        // Validate date and time format
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $appointmentDate)) {
             setFlashMessage('Invalid date format. Please use YYYY-MM-DD format.', 'error');
-            redirect('/patient?action=appointments&sub_action=request');
+            redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
-        
-        // Validate time format
         if (!preg_match('/^\d{2}:\d{2}$/', $appointmentTime)) {
             setFlashMessage('Invalid time format. Please use HH:MM format.', 'error');
-            redirect('/patient?action=appointments&sub_action=request');
+            redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
-        
-        // Combine date and time
-        $appointmentDateTime = $appointmentDate . ' ' . $appointmentTime . ':00';
-        
-        // Check if appointment is in the future
-        $appointmentTimestamp = strtotime($appointmentDateTime);
-        $currentTimestamp = time();
-        
-        if ($appointmentTimestamp <= $currentTimestamp) {
+
+        // Gabungkan tanggal dan waktu
+        $tanggal_janji = $appointmentDate;
+        $waktu_janji = $appointmentTime . ':00';
+
+        // Cek apakah appointment di masa depan
+        $appointmentTimestamp = strtotime($tanggal_janji . ' ' . $waktu_janji);
+        if ($appointmentTimestamp <= time()) {
             setFlashMessage('Appointment must be scheduled for a future date and time.', 'error');
-            redirect('/patient?action=appointments&sub_action=request');
+            redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
-        
-        // Insert appointment
-        $sql = "INSERT INTO registrasi (waktu_registrasi, id_pasien) VALUES (?, ?)";
-        $result = dbExecute($sql, [$appointmentDateTime, $patient['id_pasien']]);
-        
+
+        // Insert ke tabel appointments
+        $sql = "INSERT INTO appointments (id_pasien, id_dokter, tanggal_janji, waktu_janji, status) VALUES (?, ?, ?, ?, ?)";
+        $result = dbExecute($sql, [
+            $patient['id_pasien'],
+            $id_dokter,
+            $tanggal_janji,
+            $waktu_janji,
+            'scheduled'
+        ]);
+
         if ($result) {
             setFlashMessage('Appointment requested successfully.', 'success');
-            redirect('/patient?action=appointments');
+            redirect('/basis-data/patient?action=appointments');
         } else {
             setFlashMessage('Failed to request appointment.', 'error');
-            redirect('/patient?action=appointments&sub_action=request');
+            redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
     }
-    
+
+    // Ambil daftar dokter untuk form
+    $doctors = dbQuery("SELECT * FROM dokter ORDER BY nama_dokter ASC");
     require_once __DIR__ . '/../views/patient/appointments/request.php';
+}
+function viewAppointment() {
+    global $patient;
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+    if ($id <= 0) {
+        setFlashMessage('Invalid appointment ID.', 'error');
+        redirect('/basis-data/patient?action=appointments');
+    }
+
+    $appointment = dbQuerySingle("
+        SELECT a.*, d.nama_dokter
+        FROM appointments a
+        JOIN dokter d ON a.id_dokter = d.id_dokter
+        WHERE a.id_appointment = ? AND a.id_pasien = ?
+    ", [$id, $patient['id_pasien']]);
+
+    if (!$appointment) {
+        setFlashMessage('Appointment not found.', 'error');
+        redirect('/basis-data/patient?action=appointments');
+    }
+
+    $pageTitle = 'Appointment Details';
+    require_once __DIR__ . '/../views/patient/appointments/view.php';
+}
+function cancelAppointment() {
+    global $patient;
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+    if ($id <= 0) {
+        setFlashMessage('Invalid appointment ID.', 'error');
+        redirect('/basis-data/patient?action=appointments');
+    }
+
+    // Update status ke cancelled
+    $result = dbExecute(
+        "DELETE FROM appointments WHERE id_appointment = ? AND id_pasien = ?",
+        [$id, $patient['id_pasien']]
+    );
+
+    if ($result) {
+        setFlashMessage('Appointment cancelled.', 'success');
+    } else {
+        setFlashMessage('Failed to cancel appointment.', 'error');
+    }
+    redirect('/basis-data/patient?action=appointments');
 }
 
 /**

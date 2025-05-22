@@ -134,7 +134,7 @@ function handleRegister() {
         $password = $_POST['password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
         $name = trim($_POST['name'] ?? '');
-        $role = 'patient'; // Default role for public registration
+        $role = 'patient';
         
         // Validate required fields
         if (empty($username) || empty($email) || empty($password) || empty($name)) {
