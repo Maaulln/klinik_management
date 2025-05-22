@@ -1,22 +1,17 @@
 <?php
-// Application configuration
-
-// Environment settings
 define('APP_NAME', 'Klinik Management System');
 define('APP_URL', 'http://localhost:8080');
 define('DEBUG_MODE', true);
 
-// Database configuration
 define('DB_HOST', 'localhost');
 define('DB_PORT', '5432');
 define('DB_NAME', 'klinik_db');
 define('DB_USER', 'postgres');
-define('DB_PASS', 'postgres');
+define('DB_PASS', '1234');
 
 // Session settings
-define('SESSION_LIFETIME', 86400); // 24 hours
+define('SESSION_LIFETIME', 86400);
 
-// Error reporting
 if (DEBUG_MODE) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
