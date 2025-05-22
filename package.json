@@ -1,0 +1,12 @@
+{
+  "name": "klinik-management-system",
+  "version": "1.0.0",
+  "description": "A comprehensive hospital management system with admin and patient portals",
+  "main": "index.php",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "tailwindcss": "^3.3.3"
+  }
+}
