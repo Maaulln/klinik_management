@@ -13,7 +13,19 @@ ob_start();
         </div>
         <div>
             <label for="specialization" class="block text-sm font-medium text-gray-700">Specialization</label>
-            <input type="text" id="specialization" name="specialization" value="<?= htmlspecialchars($doctor['specialization'] ?? '') ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500">
+            <select id="specialization" name="specialization" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                <option value="" disabled <?= empty($doctor['specialization']) ? 'selected' : '' ?>>Select specialization</option>
+                <option value="General Practitioner" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'General Practitioner') ? 'selected' : '' ?>>General Practitioner</option>
+                <option value="Cardiologist" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Cardiologist') ? 'selected' : '' ?>>Cardiologist</option>
+                <option value="Dermatologist" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Dermatologist') ? 'selected' : '' ?>>Dermatologist</option>
+                <option value="Neurologist" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Neurologist') ? 'selected' : '' ?>>Neurologist</option>
+                <option value="Pediatrician" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Pediatrician') ? 'selected' : '' ?>>Pediatrician</option>
+                <option value="Psychiatrist" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Psychiatrist') ? 'selected' : '' ?>>Psychiatrist</option>
+                <option value="Radiologist" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Radiologist') ? 'selected' : '' ?>>Radiologist</option>
+                <option value="Surgeon" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Surgeon') ? 'selected' : '' ?>>Surgeon</option>
+                <option value="Orthopedist" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Orthopedist') ? 'selected' : '' ?>>Orthopedist</option>
+                <option value="Gynecologist" <?= (isset($doctor['specialization']) && $doctor['specialization'] === 'Gynecologist') ? 'selected' : '' ?>>Gynecologist</option>
+            </select>
         </div>
         <div class="flex justify-end">
             <a href="admin?action=doctors" class="mr-4 inline-block px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</a>

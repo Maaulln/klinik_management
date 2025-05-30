@@ -13,7 +13,19 @@ ob_start();
         </div>
         <div>
             <label for="specialization" class="block text-sm font-medium text-gray-700">Specialization</label>
-            <input type="text" id="specialization" name="specialization" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500">
+            <select id="specialization" name="specialization" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                <option value="" disabled selected>Select specialization</option>
+                <option value="General Practitioner">General Practitioner</option>
+                <option value="Cardiologist">Cardiologist</option>
+                <option value="Dermatologist">Dermatologist</option>
+                <option value="Neurologist">Neurologist</option>
+                <option value="Pediatrician">Pediatrician</option>
+                <option value="Psychiatrist">Psychiatrist</option>
+                <option value="Radiologist">Radiologist</option>
+                <option value="Surgeon">Surgeon</option>
+                <option value="Orthopedist">Orthopedist</option>
+                <option value="Gynecologist">Gynecologist</option>
+            </select>
         </div>
         <div class="flex justify-end">
             <a href="admin?action=doctors" class="mr-4 inline-block px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Cancel</a>
