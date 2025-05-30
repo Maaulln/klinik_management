@@ -1,4 +1,4 @@
--- Users
+-- Tabel users: Menyimpan data akun user (admin, dokter, kasir, pasien)
 CREATE TABLE users (
     id_user SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Sessions
+-- Tabel sessions: Menyimpan data sesi login user
 CREATE TABLE sessions (
     id_session SERIAL PRIMARY KEY,
     id_user INT REFERENCES users(id_user),
@@ -19,33 +19,33 @@ CREATE TABLE sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Cashier staff 
+-- Tabel petugas_kasir: Menyimpan data petugas kasir
 CREATE TABLE petugas_kasir (
     id_kasir SERIAL PRIMARY KEY,
     nama_kasir VARCHAR(250) NOT NULL
 );
 
--- Patients
+-- Tabel pasien: Menyimpan data pasien
 CREATE TABLE pasien (
     id_pasien SERIAL PRIMARY KEY,
     nama_pasien VARCHAR(250) NOT NULL,
     alamat VARCHAR(1024) NOT NULL
 );
 
--- Registration
+-- Tabel registrasi: Menyimpan data pendaftaran/registrasi pasien (jadwal janji temu)
 CREATE TABLE registrasi (
     id_registrasi SERIAL PRIMARY KEY,
     waktu_registrasi TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     id_pasien INT REFERENCES pasien(id_pasien)
 );
 
--- Doctors
+-- Tabel dokter: Menyimpan data dokter
 CREATE TABLE dokter (
     id_dokter SERIAL PRIMARY KEY,
     nama_dokter VARCHAR(200) NOT NULL
 );
 
--- Medical records
+-- Tabel catatan_medik: Menyimpan catatan medis pasien
 CREATE TABLE catatan_medik (
     id_catatan SERIAL PRIMARY KEY,
     id_dokter INT REFERENCES dokter(id_dokter),
@@ -54,28 +54,28 @@ CREATE TABLE catatan_medik (
     isi_catatan TEXT
 );
 
--- Diseases/conditions
+-- Tabel penyakit: Menyimpan data penyakit
 CREATE TABLE penyakit (
     id_penyakit SERIAL PRIMARY KEY,
     nama_penyakit VARCHAR(1024) NOT NULL,
     kategori_penyakit VARCHAR(1024) NOT NULL
 );
 
--- Medications
+-- Tabel obat: Menyimpan data obat
 CREATE TABLE obat (
     id_obat SERIAL PRIMARY KEY,
     nama_obat VARCHAR(1024) NOT NULL,
     harga_obat INT NOT NULL
 );
 
--- Prescriptions
+-- Tabel resep_obat: Menyimpan data resep obat
 CREATE TABLE resep_obat (
     id_resep SERIAL PRIMARY KEY,
     id_catatan INT REFERENCES catatan_medik(id_catatan),
     tanggal_resep DATE DEFAULT CURRENT_DATE
 );
 
--- Prescription details
+-- Tabel resep_obat_detail: Menyimpan detail resep obat (obat, jumlah, aturan pakai)
 CREATE TABLE resep_obat_detail (
     id_resep INT REFERENCES resep_obat(id_resep),
     id_obat INT REFERENCES obat(id_obat),
@@ -84,7 +84,7 @@ CREATE TABLE resep_obat_detail (
     PRIMARY KEY (id_resep, id_obat)
 );
 
--- Transactions
+-- Tabel transaksi: Menyimpan data pembayaran/transaksi pasien
 CREATE TABLE transaksi (
     id_transaksi SERIAL PRIMARY KEY,
     waktu_transaksi TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -94,21 +94,21 @@ CREATE TABLE transaksi (
     keterangan VARCHAR(1024)
 );
 
--- Initial data - Admin user
+-- Data awal user admin
 INSERT INTO users (username, password, email, role, is_active) 
 VALUES ('admin', 'admin123', 'admin@hospital.com', 'admin', TRUE);
 
--- Initial data - Cashier
+-- Data awal petugas kasir
 INSERT INTO petugas_kasir (nama_kasir) VALUES ('John Doe');
 INSERT INTO users (username, password, email, role, id_reference, is_active) 
 VALUES ('cashier', 'cashier123', 'cashier@hospital.com', 'cashier', 1, TRUE);
 
--- Initial data - Doctor
+-- Data awal dokter
 INSERT INTO dokter (nama_dokter) VALUES ('Dr. Jane Smith');
 INSERT INTO users (username, password, email, role, id_reference, is_active) 
 VALUES ('doctor', 'doctor123', 'doctor@hospital.com', 'doctor', 1, TRUE);
 
--- Sample medications
+-- Data awal obat
 INSERT INTO obat (nama_obat, harga_obat) VALUES 
 ('Paracetamol 500mg', 500),
 ('Amoxicillin 500mg', 1500),
@@ -116,24 +116,24 @@ INSERT INTO obat (nama_obat, harga_obat) VALUES
 ('Loratadine 10mg', 800),
 ('Ibuprofen 400mg', 600);
 
--- Sample patient
+-- Data awal pasien
 INSERT INTO pasien (nama_pasien, alamat) VALUES ('Sample Patient', '123 Main St');
 INSERT INTO users (username, password, email, role, id_reference, is_active) 
 VALUES ('patient', 'pasien123', 'patient@example.com', 'patient', 1, TRUE);
 
--- Sample medical record
+-- Data awal catatan medis pasien
 INSERT INTO catatan_medik (id_dokter, id_pasien, isi_catatan) 
-VALUES (1, 1, 'Patient came in with flu symptoms. Prescribed rest and medication.');
+VALUES (1, 1, 'Pasien datang dengan gejala flu. Diberikan resep istirahat dan obat.');
 
--- Sample prescription
+-- Data awal resep obat
 INSERT INTO resep_obat (id_catatan) VALUES (1);
 INSERT INTO resep_obat_detail (id_resep, id_obat, jumlah, aturan_pakai) 
-VALUES (1, 1, 10, 'Take 1 tablet every 6 hours as needed for pain or fever.');
+VALUES (1, 1, 10, 'Minum 1 tablet setiap 6 jam jika diperlukan untuk nyeri atau demam.');
 
--- Sample transaction
+-- Data awal transaksi pembayaran pasien
 INSERT INTO transaksi (harga, id_kasir, id_pasien, keterangan) 
-VALUES (5000, 1, 1, 'Payment for consultation and medication');
+VALUES (5000, 1, 1, 'Pembayaran konsultasi dan obat');
 
--- Sample appointment
+-- Data awal registrasi/appointment pasien (jadwal janji temu)
 INSERT INTO registrasi (waktu_registrasi, id_pasien) 
 VALUES (CURRENT_TIMESTAMP + INTERVAL '7 days', 1);

@@ -1,10 +1,10 @@
 <?php
-// Helper functions
+// Fungsi-fungsi bantu (helper) untuk aplikasi
 
 /**
- * Redirect to a URL
+ * Melakukan redirect ke URL tertentu
  * 
- * @param string $url URL to redirect to
+ * @param string $url URL tujuan redirect
  * @return void
  */
 function redirect($url) {
@@ -13,9 +13,9 @@ function redirect($url) {
 }
 
 /**
- * Generate a CSRF token
+ * Membuat token CSRF untuk keamanan form
  * 
- * @return string CSRF token
+ * @return string Token CSRF
  */
 function generateCSRFToken() {
     if (!isset($_SESSION['csrf_token'])) {
@@ -25,19 +25,19 @@ function generateCSRFToken() {
 }
 
 /**
- * Verify CSRF token
+ * Memverifikasi token CSRF
  * 
- * @param string $token Token to verify
- * @return bool True if token is valid
+ * @param string $token Token yang akan diverifikasi
+ * @return bool True jika token valid
  */
 function verifyCSRFToken($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
 /**
- * Display flash message
+ * Menampilkan pesan flash (notifikasi sementara)
  * 
- * @return string HTML for flash message
+ * @return string HTML pesan flash
  */
 function flashMessage() {
     if (isset($_SESSION['flash_message'])) {
@@ -63,10 +63,10 @@ function flashMessage() {
 }
 
 /**
- * Set flash message
+ * Set pesan flash (notifikasi sementara)
  * 
- * @param string $message Message to display
- * @param string $type Type of message (success, error, warning, info)
+ * @param string $message Pesan yang akan ditampilkan
+ * @param string $type Jenis pesan (success, error, warning, info)
  * @return void
  */
 function setFlashMessage($message, $type = 'info') {
@@ -75,21 +75,21 @@ function setFlashMessage($message, $type = 'info') {
 }
 
 /**
- * Sanitize input
+ * Membersihkan input dari karakter berbahaya
  * 
- * @param string $input Input to sanitize
- * @return string Sanitized input
+ * @param string $input Input yang akan dibersihkan
+ * @return string Input yang sudah aman
  */
 function sanitize($input) {
     return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
 }
 
 /**
- * Format date
+ * Format tanggal ke bentuk yang diinginkan
  * 
- * @param string $date Date to format
- * @param string $format Format to use
- * @return string Formatted date
+ * @param string $date Tanggal yang akan diformat
+ * @param string $format Format output tanggal
+ * @return string Tanggal yang sudah diformat
  */
 function formatDate($date, $format = 'Y-m-d') {
     $datetime = new DateTime($date);
@@ -97,9 +97,9 @@ function formatDate($date, $format = 'Y-m-d') {
 }
 
 /**
- * Check if request is AJAX
+ * Mengecek apakah request berasal dari AJAX
  * 
- * @return bool True if request is AJAX
+ * @return bool True jika request AJAX
  */
 function isAjax() {
     return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
@@ -107,10 +107,10 @@ function isAjax() {
 }
 
 /**
- * Return JSON response
+ * Mengirim response JSON ke client
  * 
- * @param mixed $data Data to return
- * @param int $status HTTP status code
+ * @param mixed $data Data yang akan dikirim
+ * @param int $status Kode status HTTP
  * @return void
  */
 function jsonResponse($data, $status = 200) {
@@ -121,9 +121,9 @@ function jsonResponse($data, $status = 200) {
 }
 
 /**
- * Get current URL
+ * Mengambil URL saat ini
  * 
- * @return string Current URL
+ * @return string URL saat ini
  */
 function getCurrentUrl() {
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
@@ -131,12 +131,12 @@ function getCurrentUrl() {
 }
 
 /**
- * Generate pagination
+ * Membuat HTML pagination untuk navigasi halaman
  * 
- * @param int $currentPage Current page
- * @param int $totalPages Total pages
- * @param string $baseUrl Base URL
- * @return string HTML for pagination
+ * @param int $currentPage Halaman saat ini
+ * @param int $totalPages Total halaman
+ * @param string $baseUrl URL dasar untuk link pagination
+ * @return string HTML pagination
  */
 function pagination($currentPage, $totalPages, $baseUrl) {
     if ($totalPages <= 1) {
@@ -146,7 +146,7 @@ function pagination($currentPage, $totalPages, $baseUrl) {
     $html = '<div class="flex justify-center mt-4">';
     $html .= '<nav class="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">';
     
-    // Previous button
+    // Tombol halaman sebelumnya
     $prevDisabled = $currentPage <= 1 ? 'disabled' : '';
     $prevUrl = $currentPage <= 1 ? '#' : $baseUrl . '?page=' . ($currentPage - 1);
     $html .= '<a href="' . $prevUrl . '" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ' . $prevDisabled . '">
@@ -156,7 +156,7 @@ function pagination($currentPage, $totalPages, $baseUrl) {
                 </svg>
               </a>';
     
-    // Page numbers
+    // Nomor halaman
     $range = 2;
     for ($i = max(1, $currentPage - $range); $i <= min($totalPages, $currentPage + $range); $i++) {
         $activeClass = $i === $currentPage ? 'bg-indigo-50 border-indigo-500 text-indigo-600' : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50';
@@ -165,7 +165,7 @@ function pagination($currentPage, $totalPages, $baseUrl) {
                   </a>';
     }
     
-    // Next button
+    // Tombol halaman berikutnya
     $nextDisabled = $currentPage >= $totalPages ? 'disabled' : '';
     $nextUrl = $currentPage >= $totalPages ? '#' : $baseUrl . '?page=' . ($currentPage + 1);
     $html .= '<a href="' . $nextUrl . '" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ' . $nextDisabled . '">

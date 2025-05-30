@@ -1,14 +1,14 @@
 <?php
-// Admin controller
+// Controller admin
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 
-// Require admin authentication
+// Wajib login sebagai admin
 requireAuth(['admin']);
 
-// Handle admin routes
+// Routing utama admin
 $action = isset($_GET['action']) ? $_GET['action'] : 'dashboard';
 
 switch ($action) {
@@ -36,19 +36,20 @@ switch ($action) {
         break;
 }
 
-/**
- * Show admin dashboard
- */
+// Tampilkan dashboard admin
 function showDashboard() {
     $pageTitle = 'Admin Dashboard';
     
-    // Get dashboard statistics
+    // Menghitung jumlah pasien
     $patientCount = dbQuerySingle("SELECT COUNT(*) as count FROM pasien")['count'];
+    // Menghitung jumlah dokter
     $doctorCount = dbQuerySingle("SELECT COUNT(*) as count FROM dokter")['count'];
+    // Menghitung jumlah appointment (masih pakai registrasi, bisa diganti appointments jika sudah migrasi)
     $appointmentCount = dbQuerySingle("SELECT COUNT(*) as count FROM registrasi")['count'];
+    // Menghitung jumlah transaksi
     $transactionCount = dbQuerySingle("SELECT COUNT(*) as count FROM transaksi")['count'];
     
-    // Recent patients
+    // Mengambil 5 pasien terbaru
     $recentPatients = dbQuery("
         SELECT p.*, r.waktu_registrasi 
         FROM pasien p
@@ -57,7 +58,7 @@ function showDashboard() {
         LIMIT 5
     ");
     
-    // Recent transactions
+    // Mengambil 5 transaksi terbaru
     $recentTransactions = dbQuery("
         SELECT t.*, p.nama_pasien, k.nama_kasir
         FROM transaksi t
@@ -70,9 +71,7 @@ function showDashboard() {
     require_once __DIR__ . '/../views/admin/dashboard.php';
 }
 
-/**
- * Handle patients management
- */
+// Handler manajemen pasien
 function handlePatients() {
     $subAction = isset($_GET['sub_action']) ? $_GET['sub_action'] : 'list';
     
@@ -99,9 +98,7 @@ function handlePatients() {
     }
 }
 
-/**
- * List patients
- */
+// Menampilkan daftar pasien
 function listPatients() {
     $pageTitle = 'Patients';
     
@@ -110,7 +107,7 @@ function listPatients() {
     $perPage = 10;
     $offset = ($page - 1) * $perPage;
     
-    // Search
+    // Pencarian pasien
     $search = isset($_GET['search']) ? $_GET['search'] : '';
     $searchWhere = '';
     $searchParams = [];
@@ -120,12 +117,12 @@ function listPatients() {
         $searchParams = ["%$search%", "%$search%"];
     }
     
-    // Get total count
+    // Menghitung total pasien
     $countSql = "SELECT COUNT(*) as count FROM pasien" . $searchWhere;
     $totalCount = dbQuerySingle($countSql, $searchParams)['count'];
     $totalPages = ceil($totalCount / $perPage);
     
-    // Get patients
+    // Mengambil data pasien
     $sql = "SELECT * FROM pasien" . $searchWhere . " ORDER BY id_pasien DESC LIMIT ? OFFSET ?";
     $params = array_merge($searchParams, [$perPage, $offset]);
     $patients = dbQuery($sql, $params);
@@ -133,37 +130,35 @@ function listPatients() {
     require_once __DIR__ . '/../views/admin/patients/list.php';
 }
 
-/**
- * Add patient
- */
+// Menambah pasien baru
 function addPatient() {
     $pageTitle = 'Add Patient';
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Validate CSRF token
+        // Validasi CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-            setFlashMessage('Invalid form submission. Please try again.', 'error');
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
             redirect('/basis-data/admin?action=patients&sub_action=add');
         }
         
-        // Validate input
+        // Validasi input
         $name = trim($_POST['name'] ?? '');
         $address = trim($_POST['address'] ?? '');
         
         if (empty($name)) {
-            setFlashMessage('Patient name is required.', 'error');
+            setFlashMessage('Nama pasien wajib diisi.', 'error');
             redirect('/basis-data/admin?action=patients&sub_action=add');
         }
         
-        // Insert patient
+        // Query insert pasien baru
         $sql = "INSERT INTO pasien (nama_pasien, alamat) VALUES (?, ?)";
         $result = dbExecute($sql, [$name, $address]);
         
         if ($result) {
-            setFlashMessage('Patient added successfully.', 'success');
+            setFlashMessage('Pasien berhasil ditambahkan.', 'success');
             redirect('/basis-data/admin?action=patients');
         } else {
-            setFlashMessage('Failed to add patient.', 'error');
+            setFlashMessage('Gagal menambah pasien.', 'error');
             redirect('/basis-data/admin?action=patients&sub_action=add');
         }
     }
@@ -171,52 +166,50 @@ function addPatient() {
     require_once __DIR__ . '/../views/admin/patients/add.php';
 }
 
-/**
- * Edit patient
- */
+// Mengedit data pasien
 function editPatient() {
     $pageTitle = 'Edit Patient';
     
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     
     if ($id <= 0) {
-        setFlashMessage('Invalid patient ID.', 'error');
+        setFlashMessage('ID pasien tidak valid.', 'error');
         redirect('/basis-data/admin?action=patients');
     }
     
-    // Get patient
+    // Mengambil data pasien
     $patient = dbQuerySingle("SELECT * FROM pasien WHERE id_pasien = ?", [$id]);
     
     if (!$patient) {
-        setFlashMessage('Patient not found.', 'error');
+        setFlashMessage('Pasien tidak ditemukan.', 'error');
         redirect('/basis-data/admin?action=patients');
     }
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Validate CSRF token
+        // Validasi CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-            setFlashMessage('Invalid form submission. Please try again.', 'error');
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
             redirect('/basis-data/admin?action=patients&sub_action=edit&id=' . $id);
         }
         
-        // Validate input
+        // Validasi input
         $name = trim($_POST['name'] ?? '');
         $address = trim($_POST['address'] ?? '');
         
         if (empty($name)) {
-            setFlashMessage('Patient name is required.', 'error');
+            setFlashMessage('Nama pasien wajib diisi.', 'error');
             redirect('/basis-data/admin?action=patients&sub_action=edit&id=' . $id);
         }
         
-        // Update patient
+        // Query update data pasien
         $sql = "UPDATE pasien SET nama_pasien = ?, alamat = ? WHERE id_pasien = ?";
         $result = dbExecute($sql, [$name, $address, $id]);
         
         if ($result) {
-            setFlashMessage('Patient updated successfully.', 'success');
+            setFlashMessage('Data pasien berhasil diupdate.', 'success');
             redirect('/basis-data/admin?action=patients');
         } else {
-            setFlashMessage('Failed to update patient.', 'error');
+            setFlashMessage('Gagal update data pasien.', 'error');
             redirect('/basis-data/admin?action=patients&sub_action=edit&id=' . $id);
         }
     }
@@ -224,70 +217,66 @@ function editPatient() {
     require_once __DIR__ . '/../views/admin/patients/edit.php';
 }
 
-/**
- * Delete patient
- */
+// Menghapus data pasien
 function deletePatient() {
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     
     if ($id <= 0) {
-        setFlashMessage('Invalid patient ID.', 'error');
+        setFlashMessage('ID pasien tidak valid.', 'error');
         redirect('/basis-data/admin?action=patients');
     }
     
-    // Check if patient exists
+    // Cek apakah pasien ada
     $patient = dbQuerySingle("SELECT * FROM pasien WHERE id_pasien = ?", [$id]);
     
     if (!$patient) {
-        setFlashMessage('Patient not found.', 'error');
+        setFlashMessage('Pasien tidak ditemukan.', 'error');
         redirect('/basis-data/admin?action=patients');
     }
     
-    // Check if patient has related records
+    // Cek apakah pasien punya relasi data lain
     $hasMedicalRecords = dbQuerySingle("SELECT COUNT(*) as count FROM catatan_medik WHERE id_pasien = ?", [$id])['count'] > 0;
     $hasRegistrations = dbQuerySingle("SELECT COUNT(*) as count FROM registrasi WHERE id_pasien = ?", [$id])['count'] > 0;
     $hasTransactions = dbQuerySingle("SELECT COUNT(*) as count FROM transaksi WHERE id_pasien = ?", [$id])['count'] > 0;
     
     if ($hasMedicalRecords || $hasRegistrations || $hasTransactions) {
-        setFlashMessage('Cannot delete patient with related records.', 'error');
+        setFlashMessage('Tidak bisa hapus pasien yang masih punya data terkait.', 'error');
         redirect('/basis-data/admin?action=patients');
     }
     
-    // Delete patient
+    // Query hapus pasien
     $sql = "DELETE FROM pasien WHERE id_pasien = ?";
     $result = dbExecute($sql, [$id]);
     
     if ($result) {
-        setFlashMessage('Patient deleted successfully.', 'success');
+        setFlashMessage('Pasien berhasil dihapus.', 'success');
     } else {
-        setFlashMessage('Failed to delete patient.', 'error');
+        setFlashMessage('Gagal menghapus pasien.', 'error');
     }
     
     redirect('/basis-data/admin?action=patients');
 }
 
-/**
- * View patient details
- */
+// Menampilkan detail pasien
 function viewPatient() {
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     
     if ($id <= 0) {
-        setFlashMessage('Invalid patient ID.', 'error');
+        setFlashMessage('ID pasien tidak valid.', 'error');
         redirect('/basis-data/admin?action=patients');
     }
     
-    // Get patient
+    // Mengambil data pasien
     $patient = dbQuerySingle("SELECT * FROM pasien WHERE id_pasien = ?", [$id]);
     
     if (!$patient) {
-        setFlashMessage('Patient not found.', 'error');
+        setFlashMessage('Pasien tidak ditemukan.', 'error');
         redirect('/basis-data/admin?action=patients');
     }
     
-    $pageTitle = 'Patient Details: ' . $patient['nama_pasien'];
+    $pageTitle = 'Detail Pasien: ' . $patient['nama_pasien'];
     
-    // Get medical records
+    // Mengambil catatan medis pasien
     $medicalRecords = dbQuery("
         SELECT cm.*, d.nama_dokter
         FROM catatan_medik cm
@@ -296,7 +285,7 @@ function viewPatient() {
         ORDER BY cm.tanggal_catatan DESC
     ", [$id]);
     
-    // Get registrations
+    // Mengambil data registrasi pasien
     $registrations = dbQuery("
         SELECT *
         FROM registrasi
@@ -304,7 +293,7 @@ function viewPatient() {
         ORDER BY waktu_registrasi DESC
     ", [$id]);
     
-    // Get transactions
+    // Mengambil transaksi pasien
     $transactions = dbQuery("
         SELECT t.*, k.nama_kasir
         FROM transaksi t
@@ -316,9 +305,7 @@ function viewPatient() {
     require_once __DIR__ . '/../views/admin/patients/view.php';
 }
 
-/**
- * Handle doctors management
- */
+// Handler manajemen dokter
 function handleDoctors() {
     $subAction = isset($_GET['sub_action']) ? $_GET['sub_action'] : 'list';
     
@@ -342,89 +329,85 @@ function handleDoctors() {
     }
 }
 
-/**
- * Add doctor
- */
+// Menambah dokter baru
 function addDoctor() {
     $pageTitle = 'Add Doctor';
     
     if($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Validate CSRF token
+        // Validasi CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-            setFlashMessage('Invalid form submission. Please try again.', 'error');
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
             redirect('/basis-data/admin?action=doctors&sub_action=add');
         }
         
-        // Validate input
+        // Validasi input
         $name = trim($_POST['name'] ?? '');
         $specialization = trim($_POST['specialization'] ?? '');
         
         if (empty($name)) {
-            setFlashMessage('Doctor name is required.', 'error');
+            setFlashMessage('Nama dokter wajib diisi.', 'error');
             redirect('/basis-data/admin?action=doctors&sub_action=add');
         }
         
-        // Insert doctor
+        // Query insert dokter baru
         $sql = "INSERT INTO dokter (nama_dokter, specialization) VALUES (?, ?)";
         $result = dbExecute($sql, [$name, $specialization]);
         
         if ($result) {
-            setFlashMessage('Doctor added successfully.', 'success');
+            setFlashMessage('Dokter berhasil ditambahkan.', 'success');
             redirect('/basis-data/admin?action=doctors');
         } else {
-            setFlashMessage('Failed to add doctor.', 'error');
+            setFlashMessage('Gagal menambah dokter.', 'error');
             redirect('/basis-data/admin?action=doctors&sub_action=add');
         }
     }
     require_once __DIR__ . '/../views/admin/doctors/add.php';
 }
 
-/**
- * Edit doctor
- */
+// Mengedit data dokter
 function editDoctor() {
     $pageTitle = 'Edit Doctor';
     
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     
     if ($id <= 0) {
-        setFlashMessage('Invalid doctor ID.', 'error');
+        setFlashMessage('ID dokter tidak valid.', 'error');
         redirect('/basis-data/admin?action=doctors');
     }
     
-    // Get doctor
+    // Mengambil data dokter
     $doctor = dbQuerySingle("SELECT * FROM dokter WHERE id_dokter = ?", [$id]);
     
     if (!$doctor) {
-        setFlashMessage('Doctor not found.', 'error');
+        setFlashMessage('Dokter tidak ditemukan.', 'error');
         redirect('/basis-data/admin?action=doctors');
     }
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Validate CSRF token
+        // Validasi CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-            setFlashMessage('Invalid form submission. Please try again.', 'error');
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
             redirect('/basis-data/admin?action=doctors&sub_action=edit&id=' . $id);
         }
         
-        // Validate input
+        // Validasi input
         $name = trim($_POST['name'] ?? '');
         $specialization = trim($_POST['specialization'] ?? '');
         
         if (empty($name)) {
-            setFlashMessage('Doctor name is required.', 'error');
+            setFlashMessage('Nama dokter wajib diisi.', 'error');
             redirect('/basis-data/admin?action=doctors&sub_action=edit&id=' . $id);
         }
         
-        // Update doctor
+        // Query update data dokter
         $sql = "UPDATE dokter SET nama_dokter = ?, specialization = ? WHERE id_dokter = ?";
         $result = dbExecute($sql, [$name, $specialization, $id]);
         
         if ($result) {
-            setFlashMessage('Doctor updated successfully.', 'success');
+            setFlashMessage('Data dokter berhasil diupdate.', 'success');
             redirect('/basis-data/admin?action=doctors');
         } else {
-            setFlashMessage('Failed to update doctor.', 'error');
+            setFlashMessage('Gagal update data dokter.', 'error');
             redirect('/basis-data/admin?action=doctors&sub_action=edit&id=' . $id);
         }
     }
@@ -433,16 +416,15 @@ function editDoctor() {
     require_once __DIR__ . '/../views/admin/doctors/edit.php';
 }
 
-/**
- * Delete doctor
- */
+// Menghapus data dokter
 function deleteDoctor() {
     $id = isset($_GET['id'])? (int)$_GET['id'] : 0;
     if ($id <= 0) {
-        setFlashMessage('Invalid doctor ID.', 'error');
+        setFlashMessage('ID dokter tidak valid.', 'error');
         redirect('/basis-data/admin?action=doctors');
     }
 
+    // Cek apakah dokter masih digunakan di catatan medis
     $hasMedicalRecords = dbQuerySingle("SELECT COUNT(*) as count FROM catatan_medik WHERE id_dokter = ?", [$id])['count'] > 0;
 
     if ($hasMedicalRecords) {
@@ -450,24 +432,24 @@ function deleteDoctor() {
         redirect('/basis-data/admin?action=doctors');
     }
 
+    // Mengambil data dokter
     $doctor = dbQuerySingle("SELECT * FROM dokter WHERE id_dokter = ?", [$id]);
     if (!$doctor) {
-        setFlashMessage('Doctor not found.', 'error');
+        setFlashMessage('Dokter tidak ditemukan.', 'error');
         redirect('/basis-data/admin?action=doctors');
     }
+    // Query hapus dokter
     $sql = "DELETE FROM dokter WHERE id_dokter = ?";
     $result = dbExecute($sql, [$id]);
     if ($result) {
-        setFlashMessage('Doctor deleted successfully.', 'success');
+        setFlashMessage('Dokter berhasil dihapus.', 'success');
     } else {
-        setFlashMessage('Failed to delete doctor.', 'error');
+        setFlashMessage('Gagal menghapus dokter.', 'error');
     }
     redirect('/basis-data/admin?action=doctors');
 }
 
-/**
- * List doctors
- */
+// Menampilkan daftar dokter
 function listDoctors() {
     $pageTitle = 'Doctors';
     
@@ -476,7 +458,7 @@ function listDoctors() {
     $perPage = 10;
     $offset = ($page - 1) * $perPage;
     
-    // Search
+    // Pencarian dokter
     $search = isset($_GET['search']) ? $_GET['search'] : '';
     $searchWhere = '';
     $searchParams = [];
@@ -486,12 +468,12 @@ function listDoctors() {
         $searchParams = ["%$search%"];
     }
     
-    // Get total count
+    // Menghitung total dokter
     $countSql = "SELECT COUNT(*) as count FROM dokter" . $searchWhere;
     $totalCount = dbQuerySingle($countSql, $searchParams)['count'];
     $totalPages = ceil($totalCount / $perPage);
     
-    // Get doctors
+    // Mengambil data dokter
     $sql = "SELECT * FROM dokter" . $searchWhere . " ORDER BY id_dokter DESC LIMIT ? OFFSET ?";
     $params = array_merge($searchParams, [$perPage, $offset]);
     $doctors = dbQuery($sql, $params);
@@ -499,15 +481,16 @@ function listDoctors() {
     require_once __DIR__ . '/../views/admin/doctors/list.php';
 }
 
-/**
- * Handle appointments
- */
+// Handler manajemen appointment
 function handleAppointments() {
     $subAction = isset($_GET['sub_action']) ? $_GET['sub_action'] : 'list';
     
     switch ($subAction) {
         case 'list':
             listAppointments();
+            break;
+        case 'edit':
+            editAppointment();
             break;
         case 'delete':
             deleteAppointment();
@@ -516,41 +499,95 @@ function handleAppointments() {
             http_response_code(404);
             require_once __DIR__ . '/../views/404.php';
             break;
-        }
     }
-    
+}
+
+
+// Menghapus appointment
 function deleteAppointment() {
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     
     if ($id <= 0) {
-        setFlashMessage('Invalid appointment ID.', 'error');
+        setFlashMessage('ID appointment tidak valid.', 'error');
         redirect('/basis-data/admin?action=appointments');
     }
     
-    // Check if appointment exists
+    // Cek apakah appointment ada
     $appointment = dbQuerySingle("SELECT * FROM appointments WHERE id_appointment = ?", [$id]);
     
     if (!$appointment) {
-        setFlashMessage('Appointment not found.', 'error');
+        setFlashMessage('Appointment tidak ditemukan.', 'error');
         redirect('/basis-data/admin?action=appointments');
     }
     
-    // Delete appointment
+    // Query hapus appointment
     $sql = "DELETE FROM appointments WHERE id_appointment = ?";
     $result = dbExecute($sql, [$id]);
     
     if ($result) {
-        setFlashMessage('Appointment deleted successfully.', 'success');
+        setFlashMessage('Appointment berhasil dihapus.', 'success');
     } else {
-        setFlashMessage('Failed to delete appointment.', 'error');
+        setFlashMessage('Gagal menghapus appointment.', 'error');
     }
     
     redirect('/basis-data/admin?action=appointments');
 }
 
-/**
- * List appointments
- */
+// Mengedit appointment
+function editAppointment() {
+    $pageTitle = 'Edit Appointment';
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+    if ($id <= 0) {
+        setFlashMessage('ID appointment tidak valid.', 'error');
+        redirect('/basis-data/admin?action=appointments');
+    }
+
+    // Ambil data appointment
+    $appointment = dbQuerySingle("SELECT * FROM appointments WHERE id_appointment = ?", [$id]);
+
+    if (!$appointment) {
+        setFlashMessage('Appointment tidak ditemukan.', 'error');
+        redirect('/basis-data/admin?action=appointments');
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Validasi CSRF token
+        if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
+            redirect('/basis-data/admin?action=appointments&sub_action=edit&id=' . $id);
+        }
+
+        // Validasi input
+        $id_pasien = $_POST['id_pasien'] ?? '';
+        $tanggal_janji = $_POST['tanggal_janji'] ?? '';
+        $status = $_POST['status'] ?? '';
+
+        if (empty($id_pasien) || empty($tanggal_janji) || empty($status)) {
+            setFlashMessage('Semua field wajib diisi.', 'error');
+            redirect('/basis-data/admin?action=appointments&sub_action=edit&id=' . $id);
+        }
+
+        // Update data appointment
+        $sql = "UPDATE appointments SET id_pasien = ?, tanggal_janji = ?, status = ? WHERE id_appointment = ?";
+        $result = dbExecute($sql, [$id_pasien, $tanggal_janji, $status, $id]);
+
+        if ($result) {
+            setFlashMessage('Appointment berhasil diupdate.', 'success');
+            redirect('/basis-data/admin?action=appointments');
+        } else {
+            setFlashMessage('Gagal mengupdate appointment.', 'error');
+            redirect('/basis-data/admin?action=appointments&sub_action=edit&id=' . $id);
+        }
+    }
+
+    // Ambil daftar pasien untuk select option
+    $patients = dbQuery("SELECT * FROM pasien ORDER BY nama_pasien ASC");
+
+    require_once __DIR__ . '/../views/admin/appointments/edit.php';
+}
+
+// Menampilkan daftar appointment
 function listAppointments() {
     $pageTitle = 'List Appointments';
 
@@ -559,7 +596,7 @@ function listAppointments() {
     $perPage = 10;
     $offset = ($page - 1) * $perPage;
 
-    // Search
+    // Pencarian appointment
     $search = isset($_GET['search'])? $_GET['search'] : '';
     $searchWhere = '';
     $searchParams = [];
@@ -569,14 +606,14 @@ function listAppointments() {
         $searchParams = ["%$search%", "%$search%"];
     }
 
-    // Get total count
+    // Menghitung total appointment
     $countSql = "SELECT COUNT(*) as count FROM appointments a
         JOIN pasien p ON a.id_pasien = p.id_pasien
         JOIN dokter d ON a.id_dokter = d.id_dokter" . $searchWhere;
     $totalCount = dbQuerySingle($countSql, $searchParams)['count'];
     $totalPages = ceil($totalCount / $perPage);
 
-    // Get appointments
+    // Mengambil data appointment
     $sql = "SELECT a.*, p.nama_pasien, d.nama_dokter
         FROM appointments a
         JOIN pasien p ON a.id_pasien = p.id_pasien
@@ -588,24 +625,13 @@ function listAppointments() {
     require_once __DIR__ . '/../views/admin/appointments/list.php';
 }
 
-/**
- * Handle reports
- */
+// Handler laporan
 function handleReports() {
     $subAction = isset($_GET['sub_action']) ? $_GET['sub_action'] : 'financial';
     
     switch ($subAction) {
         case 'financial':
             financialReport();
-            break;
-        case 'patient':
-            patientReport();
-            break;
-        case 'doctor':
-            doctorReport();
-            break;
-        case 'medication':
-            medicationReport();
             break;
         default:
             http_response_code(404);
@@ -614,17 +640,15 @@ function handleReports() {
     }
 }
 
-/**
- * Financial report
- */
+// Laporan keuangan
 function financialReport() {
     $pageTitle = 'Financial Report';
     
-    // Get date range
+    // Ambil rentang tanggal
     $startDate = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-01');
     $endDate = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-t');
     
-    // Get transactions
+    // Mengambil data transaksi sesuai rentang tanggal
     $transactions = dbQuery("
         SELECT t.*, p.nama_pasien, k.nama_kasir
         FROM transaksi t
@@ -634,7 +658,7 @@ function financialReport() {
         ORDER BY t.waktu_transaksi DESC
     ", [$startDate, $endDate]);
     
-    // Calculate totals
+    // Hitung total transaksi
     $total = 0;
     foreach ($transactions as $transaction) {
         $total += $transaction['harga'];
@@ -643,9 +667,7 @@ function financialReport() {
     require_once __DIR__ . '/../views/admin/reports/financial.php';
 }
 
-/**
- * Handle settings
- */
+// Handler pengaturan aplikasi
 function handleSettings() {
     $pageTitle = 'Settings';
     require_once __DIR__ . '/../views/admin/settings.php';

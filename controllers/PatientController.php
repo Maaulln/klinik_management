@@ -1,14 +1,14 @@
 <?php
-// Patient controller
+// Controller pasien
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 
-// Require patient authentication
+// Wajib login sebagai pasien
 requireAuth(['patient']);
 
-// Get current user and patient info
+// Ambil data user dan pasien yang sedang login
 $user = getCurrentUser();
 $patient = dbQuerySingle("
     SELECT p.* 
@@ -18,12 +18,12 @@ $patient = dbQuerySingle("
 ", [$user['id_user']]);
 
 if (!$patient) {
-    setFlashMessage('Patient record not found.', 'error');
+    setFlashMessage('Data pasien tidak ditemukan.', 'error');
     logout();
     redirect('/basis-data/login');
 }
 
-// Handle patient routes
+// Routing utama pasien
 $action = isset($_GET['action']) ? $_GET['action'] : 'dashboard';
 
 switch ($action) {
@@ -52,13 +52,13 @@ switch ($action) {
 }
 
 /**
- * Show patient dashboard
+ * Menampilkan dashboard pasien
  */
 function showDashboard() {
     global $patient;
-    $pageTitle = 'Patient Dashboard';
+    $pageTitle = 'Dashboard Pasien';
     
-    // Get upcoming appointments
+    // Query untuk mengambil 5 appointment mendatang milik pasien
     $upcomingAppointments = dbQuery("
        SELECT a.*, d.nama_dokter
         FROM appointments a
@@ -68,7 +68,7 @@ function showDashboard() {
         LIMIT 5
     ", [$patient['id_pasien']]);
     
-    // Get recent medical records
+    // Query untuk mengambil 5 catatan medis terbaru pasien
     $recentMedicalRecords = dbQuery("
         SELECT cm.*, d.nama_dokter
         FROM catatan_medik cm
@@ -78,7 +78,7 @@ function showDashboard() {
         LIMIT 5
     ", [$patient['id_pasien']]);
     
-    // Get recent transactions
+    // Query untuk mengambil 5 transaksi terakhir pasien
     $recentTransactions = dbQuery("
         SELECT t.*, k.nama_kasir
         FROM transaksi t
@@ -92,7 +92,7 @@ function showDashboard() {
 }
 
 /**
- * Handle appointments
+ * Handler fitur appointment pasien
  */
 function handleAppointments() {
     global $patient;
@@ -119,14 +119,14 @@ function handleAppointments() {
 }
 
 /**
- * List appointments
+ * Menampilkan daftar appointment pasien
  */
 function listAppointments() {
     global $patient;
-    $pageTitle = 'My Appointments';
+    $pageTitle = 'Janji Temu Saya';
     
-    // Get all appointments
-     $appointments = dbQuery("
+    // Query untuk mengambil semua appointment milik pasien
+    $appointments = dbQuery("
         SELECT a.*, d.nama_dokter
         FROM appointments a
         JOIN dokter d ON a.id_dokter = d.id_dokter
@@ -134,42 +134,40 @@ function listAppointments() {
         ORDER BY a.tanggal_janji DESC
     ", [$patient['id_pasien']]);
     
-    $registrations = $appointments; // Assign to $registrations for the view
-    
     require_once __DIR__ . '/../views/patient/appointments/list.php';
 }
 
 /**
- * Request appointment
+ * Proses request appointment baru oleh pasien
  */
 function requestAppointment() {
     global $patient;
-    $pageTitle = 'Request Appointment';
+    $pageTitle = 'Request Janji Temu';
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Validate CSRF token
+        // Validasi CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-            setFlashMessage('Invalid form submission. Please try again.', 'error');
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
             redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
 
-        // Validate input
+        // Validasi input form
         $appointmentDate = $_POST['appointment_date'] ?? '';
         $appointmentTime = $_POST['appointment_time'] ?? '';
         $id_dokter = $_POST['id_dokter'] ?? '';
 
         if (empty($appointmentDate) || empty($appointmentTime) || empty($id_dokter)) {
-            setFlashMessage('Please provide doctor, date, and time for your appointment.', 'error');
+            setFlashMessage('Silakan pilih dokter, tanggal, dan waktu janji temu.', 'error');
             redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
 
-        // Validate date and time format
+        // Validasi format tanggal dan waktu
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $appointmentDate)) {
-            setFlashMessage('Invalid date format. Please use YYYY-MM-DD format.', 'error');
+            setFlashMessage('Format tanggal tidak valid. Gunakan format YYYY-MM-DD.', 'error');
             redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
         if (!preg_match('/^\d{2}:\d{2}$/', $appointmentTime)) {
-            setFlashMessage('Invalid time format. Please use HH:MM format.', 'error');
+            setFlashMessage('Format waktu tidak valid. Gunakan format HH:MM.', 'error');
             redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
 
@@ -180,11 +178,11 @@ function requestAppointment() {
         // Cek apakah appointment di masa depan
         $appointmentTimestamp = strtotime($tanggal_janji . ' ' . $waktu_janji);
         if ($appointmentTimestamp <= time()) {
-            setFlashMessage('Appointment must be scheduled for a future date and time.', 'error');
+            setFlashMessage('Janji temu harus diatur untuk waktu yang akan datang.', 'error');
             redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
 
-        // Insert ke tabel appointments
+        // Query untuk insert appointment baru ke tabel appointments
         $sql = "INSERT INTO appointments (id_pasien, id_dokter, tanggal_janji, waktu_janji, status) VALUES (?, ?, ?, ?, ?)";
         $result = dbExecute($sql, [
             $patient['id_pasien'],
@@ -195,27 +193,32 @@ function requestAppointment() {
         ]);
 
         if ($result) {
-            setFlashMessage('Appointment requested successfully.', 'success');
+            setFlashMessage('Janji temu berhasil diajukan.', 'success');
             redirect('/basis-data/patient?action=appointments');
         } else {
-            setFlashMessage('Failed to request appointment.', 'error');
+            setFlashMessage('Gagal mengajukan janji temu.', 'error');
             redirect('/basis-data/patient?action=appointments&sub_action=request');
         }
     }
 
-    // Ambil daftar dokter untuk form
+    // Query untuk mengambil daftar dokter untuk form
     $doctors = dbQuery("SELECT * FROM dokter ORDER BY nama_dokter ASC");
     require_once __DIR__ . '/../views/patient/appointments/request.php';
 }
+
+/**
+ * Menampilkan detail appointment pasien
+ */
 function viewAppointment() {
     global $patient;
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
     if ($id <= 0) {
-        setFlashMessage('Invalid appointment ID.', 'error');
+        setFlashMessage('ID appointment tidak valid.', 'error');
         redirect('/basis-data/patient?action=appointments');
     }
 
+    // Query untuk mengambil data appointment berdasarkan id dan id_pasien
     $appointment = dbQuerySingle("
         SELECT a.*, d.nama_dokter
         FROM appointments a
@@ -224,38 +227,42 @@ function viewAppointment() {
     ", [$id, $patient['id_pasien']]);
 
     if (!$appointment) {
-        setFlashMessage('Appointment not found.', 'error');
+        setFlashMessage('Appointment tidak ditemukan.', 'error');
         redirect('/basis-data/patient?action=appointments');
     }
 
-    $pageTitle = 'Appointment Details';
+    $pageTitle = 'Detail Janji Temu';
     require_once __DIR__ . '/../views/patient/appointments/view.php';
 }
+
+/**
+ * Membatalkan appointment (menghapus data appointment)
+ */
 function cancelAppointment() {
     global $patient;
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
     if ($id <= 0) {
-        setFlashMessage('Invalid appointment ID.', 'error');
+        setFlashMessage('ID appointment tidak valid.', 'error');
         redirect('/basis-data/patient?action=appointments');
     }
 
-    // Update status ke cancelled
+    // Query untuk menghapus appointment berdasarkan id dan id_pasien
     $result = dbExecute(
         "DELETE FROM appointments WHERE id_appointment = ? AND id_pasien = ?",
         [$id, $patient['id_pasien']]
     );
 
     if ($result) {
-        setFlashMessage('Appointment cancelled.', 'success');
+        setFlashMessage('Appointment berhasil dibatalkan.', 'success');
     } else {
-        setFlashMessage('Failed to cancel appointment.', 'error');
+        setFlashMessage('Gagal membatalkan appointment.', 'error');
     }
     redirect('/basis-data/patient?action=appointments');
 }
 
 /**
- * Handle medical records
+ * Handler fitur catatan medis pasien
  */
 function handleMedicalRecords() {
     global $patient;
@@ -276,13 +283,13 @@ function handleMedicalRecords() {
 }
 
 /**
- * List medical records
+ * Menampilkan daftar catatan medis pasien
  */
 function listMedicalRecords() {
     global $patient;
-    $pageTitle = 'My Medical Records';
+    $pageTitle = 'Catatan Medis Saya';
     
-    // Get all medical records
+    // Query untuk mengambil semua catatan medis pasien
     $medicalRecords = dbQuery("
         SELECT cm.*, d.nama_dokter
         FROM catatan_medik cm
@@ -295,18 +302,18 @@ function listMedicalRecords() {
 }
 
 /**
- * View medical record
+ * Menampilkan detail catatan medis pasien
  */
 function viewMedicalRecord() {
     global $patient;
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     
     if ($id <= 0) {
-        setFlashMessage('Invalid medical record ID.', 'error');
+        setFlashMessage('ID catatan medis tidak valid.', 'error');
         redirect('/patient?action=medical-records');
     }
     
-    // Get medical record
+    // Query untuk mengambil data catatan medis berdasarkan id dan id_pasien
     $record = dbQuerySingle("
         SELECT cm.*, d.nama_dokter
         FROM catatan_medik cm
@@ -315,13 +322,13 @@ function viewMedicalRecord() {
     ", [$id, $patient['id_pasien']]);
     
     if (!$record) {
-        setFlashMessage('Medical record not found or you do not have permission to view it.', 'error');
+        setFlashMessage('Catatan medis tidak ditemukan atau Anda tidak memiliki akses.', 'error');
         redirect('/patient?action=medical-records');
     }
     
-    $pageTitle = 'Medical Record: ' . formatDate($record['tanggal_catatan']);
+    $pageTitle = 'Catatan Medis: ' . formatDate($record['tanggal_catatan']);
     
-    // Get prescriptions
+    // Query untuk mengambil resep obat pada catatan medis ini
     $prescriptions = dbQuery("
         SELECT ro.*, rod.jumlah, rod.aturan_pakai, o.nama_obat, o.harga_obat
         FROM resep_obat ro
@@ -335,7 +342,7 @@ function viewMedicalRecord() {
 }
 
 /**
- * Handle billing
+ * Handler fitur billing pasien
  */
 function handleBilling() {
     global $patient;
@@ -345,9 +352,6 @@ function handleBilling() {
         case 'list':
             listBilling();
             break;
-        case 'view':
-            viewBill();
-            break;
         default:
             http_response_code(404);
             require_once __DIR__ . '/../views/404.php';
@@ -356,13 +360,13 @@ function handleBilling() {
 }
 
 /**
- * List billing
+ * Menampilkan daftar transaksi/billing pasien
  */
 function listBilling() {
     global $patient;
-    $pageTitle = 'My Billing History';
+    $pageTitle = 'Riwayat Pembayaran Saya';
     
-    // Get all transactions
+    // Query untuk mengambil semua transaksi pasien
     $transactions = dbQuery("
         SELECT t.*, k.nama_kasir
         FROM transaksi t
@@ -375,20 +379,20 @@ function listBilling() {
 }
 
 /**
- * Handle profile
+ * Handler fitur profil pasien
  */
 function handleProfile() {
     global $patient, $user;
-    $pageTitle = 'My Profile';
+    $pageTitle = 'Profil Saya';
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Validate CSRF token
+        // Validasi CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-            setFlashMessage('Invalid form submission. Please try again.', 'error');
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
             redirect('/patient?action=profile');
         }
         
-        // Validate input
+        // Validasi input
         $name = trim($_POST['name'] ?? '');
         $address = trim($_POST['address'] ?? '');
         $email = trim($_POST['email'] ?? '');
@@ -397,67 +401,66 @@ function handleProfile() {
         $confirmPassword = $_POST['confirm_password'] ?? '';
         
         if (empty($name)) {
-            setFlashMessage('Name is required.', 'error');
+            setFlashMessage('Nama wajib diisi.', 'error');
             redirect('/patient?action=profile');
         }
         
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            setFlashMessage('Valid email is required.', 'error');
+            setFlashMessage('Email wajib diisi dan harus valid.', 'error');
             redirect('/patient?action=profile');
         }
         
-        // Begin transaction
+        // Mulai transaksi database
         dbBeginTransaction();
         
         try {
-            // Update patient
+            // Query untuk update data pasien
             $sqlPatient = "UPDATE pasien SET nama_pasien = ?, alamat = ? WHERE id_pasien = ?";
             dbExecute($sqlPatient, [$name, $address, $patient['id_pasien']]);
             
-            // Check if email is changed
+            // Jika email diubah, cek apakah sudah digunakan user lain
             if ($email !== $user['email']) {
-                // Check if email is already in use
                 $existingUser = dbQuerySingle("SELECT * FROM users WHERE email = ? AND id_user != ?", [$email, $user['id_user']]);
                 
                 if ($existingUser) {
-                    throw new Exception('Email is already in use by another account.');
+                    throw new Exception('Email sudah digunakan oleh akun lain.');
                 }
                 
-                // Update email
+                // Query untuk update email user
                 $sqlEmail = "UPDATE users SET email = ? WHERE id_user = ?";
                 dbExecute($sqlEmail, [$email, $user['id_user']]);
             }
             
-            // Update password if provided
+            // Update password jika diisi
             if (!empty($currentPassword) && !empty($newPassword)) {
-                // Verify current password
+                // Verifikasi password lama
                 if (!password_verify($currentPassword, $user['password'])) {
-                    throw new Exception('Current password is incorrect.');
+                    throw new Exception('Password lama salah.');
                 }
                 
-                // Validate password match
+                // Validasi password baru sama
                 if ($newPassword !== $confirmPassword) {
-                    throw new Exception('New passwords do not match.');
+                    throw new Exception('Password baru tidak sama.');
                 }
                 
-                // Validate password strength
+                // Validasi panjang password baru
                 if (strlen($newPassword) < 8) {
-                    throw new Exception('New password must be at least 8 characters long.');
+                    throw new Exception('Password baru minimal 8 karakter.');
                 }
                 
-                // Update password
+                // Query untuk update password user
                 $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
                 $sqlPassword = "UPDATE users SET password = ? WHERE id_user = ?";
                 dbExecute($sqlPassword, [$hashedPassword, $user['id_user']]);
             }
             
-            // Commit transaction
+            // Commit transaksi database
             dbCommit();
             
-            setFlashMessage('Profile updated successfully.', 'success');
+            setFlashMessage('Profil berhasil diupdate.', 'success');
             redirect('/patient?action=profile');
         } catch (Exception $e) {
-            // Rollback transaction
+            // Rollback jika gagal
             dbRollback();
             
             setFlashMessage($e->getMessage(), 'error');
@@ -469,11 +472,11 @@ function handleProfile() {
 }
 
 /**
- * Handle messages
+ * Handler fitur pesan pasien
  */
 function handleMessages() {
     global $patient;
-    $pageTitle = 'My Messages';
+    $pageTitle = 'Pesan Saya';
     require_once __DIR__ . '/../views/patient/messages.php';
 }
 ?>

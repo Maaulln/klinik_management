@@ -1,5 +1,5 @@
 <?php
-// Authentication controller
+// Controller autentikasi
 global $path;
 
 require_once __DIR__ . '/../config/config.php';
@@ -7,7 +7,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/auth.php';
 
-// Handle authentication routes
+// Routing utama autentikasi
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
 switch ($action) {
@@ -24,7 +24,7 @@ switch ($action) {
         handleResetPassword();
         break;
     default:
-        // Default to login form if path is 'login'
+        // Jika path adalah 'login', tampilkan form login
         if ($path === 'login') {
             showLoginForm();
         } elseif ($path === 'register') {
@@ -36,40 +36,40 @@ switch ($action) {
 }
 
 /**
- * Show login form
+ * Menampilkan form login
  */
 function showLoginForm() {
-    // Redirect if already logged in
+    // Redirect jika sudah login
     redirectIfAuthenticated('/');
     
-    $pageTitle = 'login';
+    $pageTitle = 'Login';
     require_once __DIR__ . '/../views/auth/login.php';
 }
 
 /**
- * Handle login
+ * Proses login
  */
 function handleLogin() {    
-    // Check if form is submitted
+    // Cek jika form dikirim
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Validate CSRF token
+        // Validasi CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-            setFlashMessage('Invalid form submission. Please try again.', 'error');
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
             redirect('/basis-data/login');
         }
         
-        // Validate input
+        // Validasi input username dan password
         $username = $_POST['username'] ?? '';
         $password = $_POST['password'] ?? '';
         
         if (empty($username) || empty($password)) {
-            setFlashMessage('Please provide both username and password.', 'error');
+            setFlashMessage('Username dan password wajib diisi.', 'error');
             redirect('/basis-data/login');
         }
         
-        // Authenticate user
+        // Autentikasi user
         if (authenticate($username, $password)) {
-            // Redirect to intended URL or default based on role
+            // Redirect ke halaman sesuai role
             $redirect = $_GET['redirect'] ?? '';
             if (!empty($redirect) && strpos($redirect, '/') === 0) {
                 redirect($redirect);
@@ -93,20 +93,20 @@ function handleLogin() {
                 }
             }
         } else {
-            setFlashMessage('Invalid username or password.', 'error');
+            setFlashMessage('Username atau password salah.', 'error');
             redirect('/basis-data/login');
         }
     } else {
-        // Show login form for GET requests
+        // Jika GET, tampilkan form login
         showLoginForm();
     }
 }
 
 /**
- * Show register form
+ * Menampilkan form registrasi
  */
 function showRegisterForm() {
-    // Redirect if already logged in
+    // Redirect jika sudah login
     redirectIfAuthenticated('/');
     
     $pageTitle = 'Register';
@@ -114,53 +114,53 @@ function showRegisterForm() {
 }
 
 /**
- * Handle registration
+ * Proses registrasi user baru
  */
 function handleRegister() {
-    // Redirect if already logged in
+    // Redirect jika sudah login
     redirectIfAuthenticated('/');
     
-    // Check if form is submitted
+    // Cek jika form dikirim
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Validate CSRF token
+        // Validasi CSRF token
         if (!isset($_POST['csrf_token']) || !verifyCSRFToken($_POST['csrf_token'])) {
-            setFlashMessage('Invalid form submission. Please try again.', 'error');
+            setFlashMessage('Form tidak valid. Silakan coba lagi.', 'error');
             redirect('basis-data/register');
         }
         
-        // Validate input
+        // Validasi input
         $username = trim($_POST['username'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
         $name = trim($_POST['name'] ?? '');
-        $role = 'patient';
+        $role = 'patient'; // Default role untuk registrasi pasien
         
-        // Validate required fields
+        // Validasi field wajib
         if (empty($username) || empty($email) || empty($password) || empty($name)) {
-            setFlashMessage('Please fill all required fields.', 'error');
+            setFlashMessage('Semua field wajib diisi.', 'error');
             redirect('basis-data/register');
         }
         
-        // Validate email
+        // Validasi format email
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            setFlashMessage('Please provide a valid email address.', 'error');
+            setFlashMessage('Email tidak valid.', 'error');
             redirect('basis-data/register');
         }
         
-        // Validate password match
+        // Validasi konfirmasi password
         if ($password !== $confirmPassword) {
-            setFlashMessage('Passwords do not match.', 'error');
+            setFlashMessage('Password tidak sama.', 'error');
             redirect('basis-data/register');
         }
         
-        // Validate password strength
+        // Validasi panjang password
         if (strlen($password) < 8) {
-            setFlashMessage('Password must be at least 8 characters long.', 'error');
+            setFlashMessage('Password minimal 8 karakter.', 'error');
             redirect('basis-data/register');
         }
         
-        // Register user
+        // Query untuk mendaftarkan user baru ke database
         $userData = [
             'username' => $username,
             'email' => $email,
@@ -173,33 +173,33 @@ function handleRegister() {
         $userId = registerUser($userData);
         
         if ($userId) {
-            setFlashMessage('Registration successful. You can now log in.', 'success');
+            setFlashMessage('Registrasi berhasil. Silakan login.', 'success');
             redirect('/basis-data/login');
         } else {
-            setFlashMessage('Username or email already exists.', 'error');
+            setFlashMessage('Username atau email sudah digunakan.', 'error');
             redirect('basis-data/register');
         }
     } else {
-        // Show registration form for GET requests
+        // Jika GET, tampilkan form registrasi
         showRegisterForm();
     }
 }
 
 /**
- * Handle logout
+ * Proses logout user
  */
 function handleLogout() {
     logout();
-    setFlashMessage('You have been logged out.', 'info');
+    setFlashMessage('Anda berhasil logout.', 'info');
     redirect('/basis-data/login');
 }
 
 /**
- * Handle password reset
+ * Menampilkan form reset password
  */
 function handleResetPassword() {
-    // Implement password reset functionality here
+    // Fitur reset password (bisa dikembangkan sesuai kebutuhan)
     $pageTitle = 'Reset Password';
     require_once __DIR__ . '/../views/auth/reset-password.php';
 }
-?>
+?> 
