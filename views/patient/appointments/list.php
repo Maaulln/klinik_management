@@ -43,46 +43,52 @@ ob_start();
     <div id="upcoming" class="tabcontent block">
         <div class="bg-white shadow overflow-hidden sm:rounded-md">
             <ul class="divide-y divide-gray-200">
-                <?php 
-                $hasUpcoming = false;
-                foreach ($appointments as $appointment): 
-                    if (strtotime($appointment['tanggal_janji']) > time()):
-                        $hasUpcoming = true;
-                ?>
-                    <li>
-                        <div class="block hover:bg-gray-50">
-                            <div class="px-4 py-4 sm:px-6">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <div class="text-sm font-medium text-gray-900">
-                                            Appointment #<?= $appointment['id_appointment'] ?>
-                                        </div>
-                                        <div class="text-sm text-gray-500">
-                                            <?= formatDate($appointment['tanggal_janji'] . ' ' . $appointment['waktu_janji'], 'F j, Y \a\t g:i a') ?>                                        </div>
-                                    </div>
-                                    <div class="ml-2 flex-shrink-0 flex">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            Scheduled
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="mt-2 flex justify-end space-x-2">
-                                    <a href="patient?action=appointments&sub_action=cancel&id=<?= $appointment['id_appointment'] ?>" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                        Cancel
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </li>
-                <?php 
-                    endif;
-                endforeach; 
-                
-                if (!$hasUpcoming):
-                ?>
+                <?php if (empty($upcomingAppointments)): ?>
                     <li class="px-4 py-4 sm:px-6">
                         <p class="text-gray-500 text-center py-4">No upcoming appointments.</p>
                     </li>
+                <?php else: ?>
+                    <?php foreach ($upcomingAppointments as $appointment): ?>
+                        <li>
+                            <div class="block hover:bg-gray-50">
+                                <div class="px-4 py-4 sm:px-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">
+                                                Appointment #<?= $appointment['id_appointment'] ?>
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                <?= formatDate($appointment['tanggal_janji'] . ' ' . $appointment['waktu_janji'], 'F j, Y \a\t g:i a') ?>
+                                            </div>
+                                        </div>
+                                        <div class="ml-2 flex-shrink-0 flex">
+                                            <?php
+                                            // Map status to label and style
+                                            $statusLabels = [
+                                                'scheduled' => ['label' => 'Scheduled', 'class' => 'bg-blue-100 text-blue-800'],
+                                                'completed' => ['label' => 'Completed', 'class' => 'bg-gray-100 text-gray-800'],
+                                                'cancelled' => ['label' => 'Cancelled', 'class' => 'bg-red-100 text-red-800'],
+                                                'pending' => ['label' => 'Pending', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                                'rescheduled' => ['label' => 'Rescheduled', 'class' => 'bg-purple-100 text-purple-800'],
+                                            ];
+                                            $status = strtolower($appointment['status']);
+                                            $label = $statusLabels[$status]['label'] ?? ucfirst($status);
+                                            $class = $statusLabels[$status]['class'] ?? 'bg-gray-100 text-gray-800';
+                                            ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $class ?>">
+                                                <?= htmlspecialchars($label) ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 flex justify-end space-x-2">
+                                        <a href="patient?action=appointments&sub_action=cancel&id=<?= $appointment['id_appointment'] ?>" class="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                            Cancel
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </ul>
         </div>
@@ -110,8 +116,21 @@ ob_start();
                                             <?= formatDate(trim(($appointment['tanggal_janji'] ?? '') . ' ' . ($appointment['waktu_janji'] ?? '')),'F j, Y \a\t g:i a' ) ?>                                        </div>
                                     </div>
                                     <div class="ml-2 flex-shrink-0 flex">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                            Completed
+                                        <?php
+                                        // Map status to label and style
+                                        $statusLabels = [
+                                            'scheduled' => ['label' => 'Scheduled', 'class' => 'bg-blue-100 text-blue-800'],
+                                            'completed' => ['label' => 'Completed', 'class' => 'bg-gray-100 text-gray-800'],
+                                            'cancelled' => ['label' => 'Cancelled', 'class' => 'bg-red-100 text-red-800'],
+                                            'pending' => ['label' => 'Pending', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                            'rescheduled' => ['label' => 'Rescheduled', 'class' => 'bg-purple-100 text-purple-800'],
+                                        ];
+                                        $status = strtolower($appointment['status']);
+                                        $label = $statusLabels[$status]['label'] ?? ucfirst($status);
+                                        $class = $statusLabels[$status]['class'] ?? 'bg-gray-100 text-gray-800';
+                                        ?>
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $class ?>">
+                                            <?= htmlspecialchars($label) ?>
                                         </span>
                                     </div>
                                 </div>
@@ -131,7 +150,56 @@ ob_start();
             </ul>
         </div>
     </div>
-</div>
+    
+    <!-- Past Appointments -->
+    <div id="past" class="tabcontent hidden">
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <ul class="divide-y divide-gray-200">
+                <?php if (empty($pastAppointments)): ?>
+                    <li class="px-4 py-4 sm:px-6">
+                        <p class="text-gray-500 text-center py-4">No past appointments.</p>
+                    </li>
+                <?php else: ?>
+                    <?php foreach ($pastAppointments as $appointment): ?>
+                        <li>
+                            <div class="block hover:bg-gray-50">
+                                <div class="px-4 py-4 sm:px-6">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">
+                                                Appointment #<?= $appointment['id_appointment'] ?>
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                <?= formatDate(trim(($appointment['tanggal_janji'] ?? '') . ' ' . ($appointment['waktu_janji'] ?? '')),'F j, Y \a\t g:i a' ) ?>
+                                            </div>
+                                        </div>
+                                        <div class="ml-2 flex-shrink-0 flex">
+                                            <?php
+                                            // Map status to label and style
+                                            $statusLabels = [
+                                                'scheduled' => ['label' => 'Scheduled', 'class' => 'bg-blue-100 text-blue-800'],
+                                                'completed' => ['label' => 'Completed', 'class' => 'bg-gray-100 text-gray-800'],
+                                                'cancelled' => ['label' => 'Cancelled', 'class' => 'bg-red-100 text-red-800'],
+                                                'pending' => ['label' => 'Pending', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                                'rescheduled' => ['label' => 'Rescheduled', 'class' => 'bg-purple-100 text-purple-800'],
+                                            ];
+                                            $status = strtolower($appointment['status']);
+                                            $label = $statusLabels[$status]['label'] ?? ucfirst($status);
+                                            $class = $statusLabels[$status]['class'] ?? 'bg-gray-100 text-gray-800';
+                                            ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $class ?>">
+                                                <?= htmlspecialchars($label) ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </div>
 
 <!-- Add JavaScript for tabs -->
 <script>

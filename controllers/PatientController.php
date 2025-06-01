@@ -63,8 +63,22 @@ function showDashboard() {
        SELECT a.*, d.nama_dokter
         FROM appointments a
         JOIN dokter d ON a.id_dokter = d.id_dokter
-        WHERE a.id_pasien = ? AND (a.tanggal_janji > CURRENT_DATE OR (a.tanggal_janji = CURRENT_DATE AND a.waktu_janji > CURRENT_TIME))
+        WHERE a.id_pasien = ? 
+          AND (a.tanggal_janji > CURRENT_DATE OR (a.tanggal_janji = CURRENT_DATE AND a.waktu_janji > CURRENT_TIME))
+          AND a.status IN ('scheduled', 'pending', 'rescheduled')
         ORDER BY a.tanggal_janji ASC, a.waktu_janji ASC
+        LIMIT 5
+    ", [$patient['id_pasien']]);
+
+    // Query untuk mengambil 5 appointment masa lalu milik pasien
+    $pastAppointments = dbQuery("
+        SELECT a.*, d.nama_dokter
+        FROM appointments a
+        JOIN dokter d ON a.id_dokter = d.id_dokter
+        WHERE a.id_pasien = ?
+          AND (a.tanggal_janji < CURRENT_DATE OR (a.tanggal_janji = CURRENT_DATE AND a.waktu_janji <= CURRENT_TIME))
+          AND a.status IN ('completed', 'cancelled')
+        ORDER BY a.tanggal_janji DESC, a.waktu_janji DESC
         LIMIT 5
     ", [$patient['id_pasien']]);
     
@@ -133,6 +147,24 @@ function listAppointments() {
         WHERE a.id_pasien = ?
         ORDER BY a.tanggal_janji DESC
     ", [$patient['id_pasien']]);
+
+    // Separate appointments into upcoming and past based on status and date/time
+    $upcomingAppointments = [];
+    $pastAppointments = [];
+    $now = date('Y-m-d H:i:s');
+
+    foreach ($appointments as $appointment) {
+        $appointmentDateTime = $appointment['tanggal_janji'] . ' ' . $appointment['waktu_janji'];
+        if (($appointment['status'] === 'scheduled' || $appointment['status'] === 'pending' || $appointment['status'] === 'rescheduled') &&
+            strtotime($appointmentDateTime) > strtotime($now)) {
+            $upcomingAppointments[] = $appointment;
+        } elseif ($appointment['status'] !== 'scheduled') {
+            $pastAppointments[] = $appointment;
+        }
+    }
+
+    // Pass these arrays to the view
+    require_once __DIR__ . '/../views/patient/appointments/list.php';
     
     require_once __DIR__ . '/../views/patient/appointments/list.php';
 }

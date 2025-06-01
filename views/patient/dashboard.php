@@ -83,8 +83,21 @@ ob_start();
                                     </div>
                                 </div>
                                 <div>
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                        Scheduled
+                                    <?php
+                                    // Map status to label and style
+                                    $statusLabels = [
+                                        'scheduled' => ['label' => 'Scheduled', 'class' => 'bg-blue-100 text-blue-800'],
+                                        'completed' => ['label' => 'Completed', 'class' => 'bg-gray-100 text-gray-800'],
+                                        'cancelled' => ['label' => 'Cancelled', 'class' => 'bg-red-100 text-red-800'],
+                                        'pending' => ['label' => 'Pending', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                        'rescheduled' => ['label' => 'Rescheduled', 'class' => 'bg-purple-100 text-purple-800'],
+                                    ];
+                                    $status = strtolower($appointments['status']);
+                                    $label = $statusLabels[$status]['label'] ?? ucfirst($status);
+                                    $class = $statusLabels[$status]['class'] ?? 'bg-gray-100 text-gray-800';
+                                    ?>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $class ?>">
+                                        <?= htmlspecialchars($label) ?>
                                     </span>
                                 </div>
                             </div>
@@ -131,6 +144,60 @@ ob_start();
                                     </div>
                                 </div>
                             </a>
+                        </li>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Past Appointments -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                Past Appointments
+            </h3>
+            <a href="patient?action=appointments" class="text-sm font-medium text-primary-600 hover:text-primary-500">
+                View all
+            </a>
+        </div>
+        <div class="border-t border-gray-200">
+            <ul class="divide-y divide-gray-200">
+                <?php if (empty($pastAppointments)): ?>
+                    <li class="px-4 py-4 sm:px-6">
+                        <p class="text-gray-500 text-center py-4">No past appointments.</p>
+                    </li>
+                <?php else: ?>
+                    <?php foreach ($pastAppointments as $appointments): ?>
+                        <li class="px-4 py-4 sm:px-6 hover:bg-gray-50">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">
+                                        Appointment #<?= $appointments['id_appointment'] ?>
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        <?= formatDate($appointments['tanggal_janji'], 'F j, Y \a\t g:i a') ?>
+                                    </div>
+                                </div>
+                                <div>
+                                    <?php
+                                    // Map status to label and style
+                                    $statusLabels = [
+                                        'scheduled' => ['label' => 'Scheduled', 'class' => 'bg-blue-100 text-blue-800'],
+                                        'completed' => ['label' => 'Completed', 'class' => 'bg-gray-100 text-gray-800'],
+                                        'cancelled' => ['label' => 'Cancelled', 'class' => 'bg-red-100 text-red-800'],
+                                        'pending' => ['label' => 'Pending', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                        'rescheduled' => ['label' => 'Rescheduled', 'class' => 'bg-purple-100 text-purple-800'],
+                                    ];
+                                    $status = strtolower($appointments['status']);
+                                    $label = $statusLabels[$status]['label'] ?? ucfirst($status);
+                                    $class = $statusLabels[$status]['class'] ?? 'bg-gray-100 text-gray-800';
+                                    ?>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $class ?>">
+                                        <?= htmlspecialchars($label) ?>
+                                    </span>
+                                </div>
+                            </div>
                         </li>
                     <?php endforeach; ?>
                 <?php endif; ?>

@@ -1,5 +1,4 @@
 <?php
-// Controller admin
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -44,8 +43,8 @@ function showDashboard() {
     $patientCount = dbQuerySingle("SELECT COUNT(*) as count FROM pasien")['count'];
     // Menghitung jumlah dokter
     $doctorCount = dbQuerySingle("SELECT COUNT(*) as count FROM dokter")['count'];
-    // Menghitung jumlah appointment (masih pakai registrasi, bisa diganti appointments jika sudah migrasi)
-    $appointmentCount = dbQuerySingle("SELECT COUNT(*) as count FROM registrasi")['count'];
+    // Menghitung jumlah appointment
+    $appointmentCount = dbQuerySingle("SELECT COUNT(*) as count FROM appointments")['count'];
     // Menghitung jumlah transaksi
     $transactionCount = dbQuerySingle("SELECT COUNT(*) as count FROM transaksi")['count'];
     
