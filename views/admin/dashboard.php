@@ -227,7 +227,7 @@ ob_start();
                                 </div>
                                 <div class="flex items-center">
                                     <div class="text-sm font-bold text-gray-900 mr-2">
-                                        $<?= number_format($transaction['harga'] / 100, 2) ?>
+                                        Rp<?= number_format($transaction['harga'], 2) ?>
                                     </div>
                                     <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                         <i class="fas fa-check-circle mr-1"></i> Paid

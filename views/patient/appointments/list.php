@@ -63,7 +63,6 @@ ob_start();
                                         </div>
                                         <div class="ml-2 flex-shrink-0 flex">
                                             <?php
-                                            // Map status to label and style
                                             $statusLabels = [
                                                 'scheduled' => ['label' => 'Scheduled', 'class' => 'bg-blue-100 text-blue-800'],
                                                 'completed' => ['label' => 'Completed', 'class' => 'bg-gray-100 text-gray-800'],
@@ -100,7 +99,7 @@ ob_start();
             <ul class="divide-y divide-gray-200">
                 <?php 
                 $hasPast = false;
-                foreach ($appointments as $appointment): 
+                foreach ($pastAppointments as $appointment): 
                     if (strtotime($appointment['tanggal_janji']) <= time()):
                         $hasPast = true;
                 ?>
@@ -115,7 +114,7 @@ ob_start();
                                         <div class="text-sm text-gray-500">
                                             <?= formatDate(trim(($appointment['tanggal_janji'] ?? '') . ' ' . ($appointment['waktu_janji'] ?? '')),'F j, Y \a\t g:i a' ) ?>                                        </div>
                                     </div>
-                                    <div class="ml-2 flex-shrink-0 flex">
+                                    <div class="ml-2 flex-shrink-0 flex space-x-2">
                                         <?php
                                         // Map status to label and style
                                         $statusLabels = [
@@ -132,6 +131,11 @@ ob_start();
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $class ?>">
                                             <?= htmlspecialchars($label) ?>
                                         </span>
+                                        <?php if ($status === 'completed || cancelled'): ?>
+                                            <a href="patient?action=billing&sub_action=create&id_appointment=<?= $appointment['id_appointment'] ?>" class="inline-flex items-center px-2.5 py-1.5 border border-primary-600 shadow-sm text-xs font-medium rounded text-primary-600 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                                Make Payment
+                                            </a>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -160,7 +164,7 @@ ob_start();
                         <p class="text-gray-500 text-center py-4">No past appointments.</p>
                     </li>
                 <?php else: ?>
-                    <?php foreach ($pastAppointments as $appointment): ?>
+<?php foreach ($pastAppointments as $appointment): ?>
                         <li>
                             <div class="block hover:bg-gray-50">
                                 <div class="px-4 py-4 sm:px-6">
@@ -173,7 +177,7 @@ ob_start();
                                                 <?= formatDate(trim(($appointment['tanggal_janji'] ?? '') . ' ' . ($appointment['waktu_janji'] ?? '')),'F j, Y \a\t g:i a' ) ?>
                                             </div>
                                         </div>
-                                        <div class="ml-2 flex-shrink-0 flex">
+                                        <div class="ml-2 flex-shrink-0 flex space-x-2">
                                             <?php
                                             // Map status to label and style
                                             $statusLabels = [
@@ -190,6 +194,11 @@ ob_start();
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $class ?>">
                                                 <?= htmlspecialchars($label) ?>
                                             </span>
+                                            <?php if ($status === 'completed'): ?>
+                                                <a href="patient?action=billing&sub_action=create&id_appointment=<?= $appointment['id_appointment'] ?>" class="inline-flex items-center px-2.5 py-1.5 border border-primary-600 shadow-sm text-xs font-medium rounded text-primary-600 bg-white hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                                    Bayar
+                                                </a>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>

@@ -198,7 +198,7 @@ function handleLogout() {
  * Menampilkan form reset password
  */
 function handleResetPassword() {
-    // Fitur reset password (bisa dikembangkan sesuai kebutuhan)
+    // Fitur reset password
     $pageTitle = 'Reset Password';
     require_once __DIR__ . '/../views/auth/reset-password.php';
 }

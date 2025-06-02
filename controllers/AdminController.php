@@ -64,7 +64,7 @@ function showDashboard() {
         JOIN pasien p ON t.id_pasien = p.id_pasien
         JOIN petugas_kasir k ON t.id_kasir = k.id_kasir
         ORDER BY t.waktu_transaksi DESC
-        LIMIT 5
+        LIMIT 6
     ");
     
     require_once __DIR__ . '/../views/admin/dashboard.php';
@@ -183,6 +183,10 @@ function editPatient() {
         setFlashMessage('Pasien tidak ditemukan.', 'error');
         redirect('/basis-data/admin?action=patients');
     }
+
+    // Set variables for the view to pre-fill the form
+    $name = $patient['nama_pasien'];
+    $address = $patient['alamat'];
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Validasi CSRF token
@@ -320,6 +324,9 @@ function handleDoctors() {
             break;
         case 'delete':
             deleteDoctor();
+            break;
+        case 'view':
+            viewDoctor();
             break;
         default:
             http_response_code(404);
@@ -478,6 +485,27 @@ function listDoctors() {
     $doctors = dbQuery($sql, $params);
     
     require_once __DIR__ . '/../views/admin/doctors/list.php';
+}
+
+function viewDoctor() {
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+    if ($id <= 0) {
+        setFlashMessage('ID dokter tidak valid.', 'error');
+        redirect('/basis-data/admin?action=doctors');
+    }
+
+    // Mengambil data dokter
+    $doctor = dbQuerySingle("SELECT * FROM dokter WHERE id_dokter = ?", [$id]);
+
+    if (!$doctor) {
+        setFlashMessage('Dokter tidak ditemukan.', 'error');
+        redirect('/basis-data/admin?action=doctors');
+    }
+
+    $pageTitle = 'Detail Dokter: ' . $doctor['nama_dokter'];
+
+    require_once __DIR__ . '/../views/admin/doctors/view.php';
 }
 
 // Handler manajemen appointment
