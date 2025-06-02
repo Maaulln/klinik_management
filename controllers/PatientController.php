@@ -148,7 +148,6 @@ function listAppointments() {
         ORDER BY a.tanggal_janji DESC
     ", [$patient['id_pasien']]);
 
-    // Separate appointments into upcoming and past based on status and date/time
     $upcomingAppointments = [];
     $pastAppointments = [];
     $now = date('Y-m-d H:i:s');
